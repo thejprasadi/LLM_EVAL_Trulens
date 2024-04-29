@@ -1,3 +1,4 @@
+
 import streamlit as st
 #from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
@@ -15,6 +16,7 @@ import os
 import openai
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 
 # embeddings=OpenAIEmbeddings(
@@ -67,16 +69,14 @@ def split_text():
 
 texts= split_text() 
 
-
-def set_chain(qa):
-    embeddings = OpenAIEmbeddings()
-    db = Chroma.from_documents(texts, embeddings)
-    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
+embeddings = OpenAIEmbeddings()
+db = Chroma.from_documents(texts, embeddings)
+retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
    
 
     
-
-    chain = (
+chain = (
+    
     {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | prompt
     | model
@@ -84,7 +84,10 @@ def set_chain(qa):
 
    
 )
-    return chain.invoke(qa)
+
+
+def set_chain(qa):
+   return chain.invoke(qa)
 
 def format_docs(docs):
 
@@ -144,6 +147,10 @@ with col3:
 
     else:
       st.text_area("Result", height=300, key='result')
+    
+
+
+
     
 
 
