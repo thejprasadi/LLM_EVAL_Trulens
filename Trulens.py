@@ -1,28 +1,29 @@
-
-from dotenv import load_dotenv
+import streamlit as st
+#from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain.document_loaders import TextLoader
+#from langchain.document_loaders import TextLoader
 from langchain.chains import RetrievalQA
 from langchain.indexes import VectorstoreIndexCreator
-from langchain.text_splitter import CharacterTextSplitter
+#from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 #from langchain.vectorstores import Chroma
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import Chroma
-# import os
+import os
 import openai
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from langchain_core.prompts import ChatPromptTemplate
 
-import os
+# embeddings=OpenAIEmbeddings(
+#     model="text-embedding-ada-002"
+# )
 
+st.set_page_config(page_title="Research Application" ,layout="wide", initial_sidebar_state="auto")
 
-
-
+st.title('PDF Reader')
 
 template = """Answer the question based only on the following context:
 
@@ -34,31 +35,56 @@ Question: {question}
 """
 
 prompt=ChatPromptTemplate.from_template(template)
+
 model=ChatOpenAI(model_name="gpt-4-turbo-preview",
                  temperature=0)
-
 
 output_parser=StrOutputParser()
 
 persist_directory="./vectorstore"
 
+upload_file = st.file_uploader("Choose a PDF file", type="pdf")
+
+def split_text():
+  if upload_file:
+    temp_file="./temp.pdf"
+    with open(temp_file,"wb") as file:
+      file.write(upload_file.getvalue())
+    #   file_name=upload_file.file_name
+
+    loader= PyPDFLoader(temp_file)
+    docs_raw = loader.load()
+
+    docs_raw_text = [doc.page_content for doc in docs_raw]
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
+                                                   chunk_overlap=200)
+    docs = text_splitter.create_documents(docs_raw_text)
+
+    # st.write(docs)
+    # st.write("hi...")
+
+    return docs
+
+texts= split_text() 
 
 
-loader= PyPDFLoader("/Users/thejani/Documents/GenAI/report.pdf")
-docs_raw = loader.load()
+def set_chain(qa):
+    embeddings = OpenAIEmbeddings()
+    db = Chroma.from_documents(texts, embeddings)
+    retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
+   
 
-docs_raw_text = [doc.page_content for doc in docs_raw]
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
-                                                   chunk_overlap=0)
-docs = text_splitter.create_documents(docs_raw_text)
+    
 
+    chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | model
+    | StrOutputParser()
 
-
-
-embeddings = OpenAIEmbeddings()
-#embeddings = OllamaEmbeddings()
-db = Chroma.from_documents(docs, embeddings)
-retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":10})
+   
+)
+    return chain.invoke(qa)
 
 def format_docs(docs):
 
@@ -67,20 +93,60 @@ def format_docs(docs):
 
     
     return format_D
-   
 
+
+st.markdown("""
+<style>
+    /* Target the buttons inside the Streamlit app to expand to full width */
+    .stButton>button {
+        width: 100%;
+    }
+            
+    
+    
+</style>
+""", unsafe_allow_html=True)
+
+import streamlit as st
+
+
+
+
+col1, col2, col3 = st.columns([3, 1, 3])
+
+
+with col1:
+    user_input = st.text_area("Enter Your Query Here", height=300)
+
+with col2:
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    st.write("")
+    submit_btn = st.button("Submit", key="summary_btn")
     
 
-chain = (
-{"context": retriever | format_docs, "question": RunnablePassthrough()}
-| prompt
-| model
-| StrOutputParser()
 
-   
-)
+def submit(text):
+    return set_chain(text)
 
-chain.invoke("What is non accrual loans")
+
+
+with col3:
+
+    if submit_btn:
+      with st.spinner('Submiting Query...'):
+        query_result = submit(user_input)
+        st.text_area("Query Output", value=query_result, height=300, key='result')
+
+    else:
+      st.text_area("Result", height=300, key='result')
+    
+
+
 
 
 
