@@ -15,14 +15,10 @@ from langchain_community.vectorstores import Chroma
 import openai
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_groq import ChatGroq
-from langsmith import Client
-import os
 
-from dotenv import load_dotenv,find_dotenv
-load_dotenv(find_dotenv())
+from langchain_core.prompts import ChatPromptTemplate
+
+import os
 
 
 
