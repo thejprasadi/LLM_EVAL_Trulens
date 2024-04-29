@@ -1,0 +1,14 @@
+
+openai
+streamlit
+langchain
+langchain_openai
+langchain_core
+pysqlite3-binary
+tiktoken
+chromadb
+pypdf
+trulens_eval
+numpy
+
+
