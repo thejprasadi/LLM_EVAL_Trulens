@@ -152,6 +152,42 @@ with col3:
 
 #####   Evaluation   #######
 
+from trulens_eval.feedback.provider import OpenAI
+from trulens_eval import Feedback
+import numpy as np
+from trulens_eval import TruChain, Tru
+
+tru=Tru()
+
+# Initialize provider class
+provider = OpenAI()
+
+# select context to be used in feedback. the location of context is app specific.
+from trulens_eval.app import App
+context = App.select_context(chain)
+
+from trulens_eval.feedback import Groundedness
+grounded = Groundedness(groundedness_provider=OpenAI())
+# Define a groundedness feedback function
+f_groundedness = (
+    Feedback(grounded.groundedness_measure_with_cot_reasons)
+    .on(context.collect()) # collect context chunks into a list
+    .on_output()
+    .aggregate(grounded.grounded_statements_aggregator)
+)
+
+# Question/answer relevance between overall question and answer.
+f_answer_relevance = (
+    Feedback(provider.relevance)
+    .on_input_output()
+)
+# Question/statement relevance between question and each context chunk.
+f_context_relevance = (
+    Feedback(provider.context_relevance_with_cot_reasons)
+    .on_input()
+    .on(context)
+    .aggregate(np.mean)
+)
 
 tru_recorder = TruChain(chain,
     app_id='Chain1_ChatApplication',
