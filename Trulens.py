@@ -47,27 +47,30 @@ persist_directory="./vectorstore"
 
 upload_file = st.file_uploader("Choose a PDF file", type="pdf")
 
-def split_text():
-  if upload_file:
+
+
+if upload_file:
     temp_file="./temp.pdf"
+
     with open(temp_file,"wb") as file:
       file.write(upload_file.getvalue())
     #   file_name=upload_file.file_name
+loader= PyPDFLoader(temp_file)
+docs_raw = loader.load()
 
-    loader= PyPDFLoader(temp_file)
-    docs_raw = loader.load()
-
-    docs_raw_text = [doc.page_content for doc in docs_raw]
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
+docs_raw_text = [doc.page_content for doc in docs_raw]
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000,
                                                    chunk_overlap=200)
-    docs = text_splitter.create_documents(docs_raw_text)
+docs = text_splitter.create_documents(docs_raw_text)
 
     # st.write(docs)
     # st.write("hi...")
 
-    return docs
+   
 
-texts= split_text() 
+
+
+
 
 embeddings = OpenAIEmbeddings()
 db = Chroma.from_documents(texts, embeddings)
@@ -75,8 +78,8 @@ retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
    
 
     
+
 chain = (
-    
     {"context": retriever | format_docs, "question": RunnablePassthrough()}
     | prompt
     | model
@@ -84,10 +87,7 @@ chain = (
 
    
 )
-
-
-def set_chain(qa):
-   return chain.invoke(qa)
+chain.invoke(qa)
 
 def format_docs(docs):
 
@@ -133,8 +133,7 @@ with col2:
     
 
 
-def submit(text):
-    return set_chain(text)
+
 
 
 
@@ -142,7 +141,7 @@ with col3:
 
     if submit_btn:
       with st.spinner('Submiting Query...'):
-        query_result = submit(user_input)
+        qa = submit(user_input)
         st.text_area("Query Output", value=query_result, height=300, key='result')
 
     else:
